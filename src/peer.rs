@@ -14,25 +14,25 @@ pub struct LachesisPeerStruct {
     id: PeerId,
     #[serde(rename="NetAddr")]
     net_addr: String,
-    #[serde(skip)]
-    used: i64,
-    #[serde(skip)]
-    height: i64,
-    #[serde(skip)]
-    in_degree: i64,
-    #[serde(skip)]
+    #[serde(skip,default)]
+    used: u64,
+    #[serde(skip,default)]
+    height: u64,
+    #[serde(skip,default)]
+    in_degree: u64,
+    #[serde(skip,default)]
     lock: RwLock<()>,
 }
 
 pub trait LachesisPeer {
     fn new(&self, id: PeerId, net_addr: String) -> LachesisPeerStruct;
-    fn set_height(&mut self, height: i64);
-    fn get_height(&self) -> i64;
-    fn next_height(&mut self) -> i64;
-    fn set_in_degree(&mut self, height: i64);
-    fn get_in_degree(&self) -> i64;
+    fn set_height(&mut self, height: u64);
+    fn get_height(&self) -> u64;
+    fn next_height(&mut self) -> u64;
+    fn set_in_degree(&mut self, in_degree: u64);
+    fn get_in_degree(&self) -> u64;
     fn inc_in_degree(&mut self);
-    fn get_peers(json_peer_path: String) -> Vec<LachesisPeerStruct>;
+    fn get_peers_from_file(json_peer_path: String) -> Result<Vec<LachesisPeerStruct>, Error>;
     fn inc_used(&mut self);
 }
 
@@ -48,29 +48,29 @@ impl LachesisPeer for LachesisPeerStruct {
                 id: id,
                 net_addr: net_addr,
                 used: 0,
-                height: -1,
+                height: 0,
                 in_degree: 0,
                 lock: RwLock::new(()),
             }
     }
-    fn set_height(&mut self, height: i64){
+    fn set_height(&mut self, height: u64){
         let _ = self.lock.write().unwrap();
         self.height = height;
     }
-    fn get_height(&self) -> i64 {
+    fn get_height(&self) -> u64 {
         let _ = self.lock.read().unwrap();
         return self.height;
     }
-    fn next_height(&mut self) -> i64 {
+    fn next_height(&mut self) -> u64 {
         let _ = self.lock.write().unwrap();
         self.height += 1;
         return self.height;
     }
-    fn set_in_degree(&mut self, in_degree: i64){
+    fn set_in_degree(&mut self, in_degree: u64){
         let _ = self.lock.write().unwrap();
         self.in_degree = in_degree;
     }
-    fn get_in_degree(&self) -> i64 {
+    fn get_in_degree(&self) -> u64 {
         let _ = self.lock.read().unwrap();
         return self.in_degree;
     }
@@ -78,12 +78,12 @@ impl LachesisPeer for LachesisPeerStruct {
         let _ = self.lock.write().unwrap();
         self.in_degree += 1;
     }
-    fn get_peers(json_peer_path: String) -> Vec<LachesisPeerStruct> {
-        let mut file = File::open(json_peer_path).expect("get_peers(), open file");
+    fn get_peers_from_file(json_peer_path: String) -> Result<Vec<LachesisPeerStruct>, Error> {
+        let mut file = File::open(json_peer_path)?;
         let mut data = String::new();
-        file.read_to_string(&mut data).expect("reading from json file");
-        let Ar: Vec<LachesisPeerStruct> = serde_json::from_str(&data).expect("desrialisation from json data");
-        return Ar;
+        file.read_to_string(&mut data)?;
+        let ar: Vec<LachesisPeerStruct> = serde_json::from_str(&data)?;
+        Ok(ar)
     }
     fn inc_used(&mut self) {
         let _ = self.lock.write().unwrap();
