@@ -82,8 +82,7 @@ impl LachesisPeer for LachesisPeerStruct {
         let mut file = File::open(json_peer_path)?;
         let mut data = String::new();
         file.read_to_string(&mut data)?;
-        let ar: Vec<LachesisPeerStruct> = serde_json::from_str(&data)?;
-        Ok(ar)
+        Ok(serde_json::from_str(&data)?)
     }
     fn inc_used(&mut self) {
         let _ = self.lock.write().unwrap();
