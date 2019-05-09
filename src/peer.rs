@@ -2,12 +2,23 @@ extern crate serde;
 extern crate serde_json;
 use crate::event::event_hash::EventHash;
 use failure::Error;
+use std::convert::From;
 use std::fs::File;
 use std::io::Read;
 use std::sync::RwLock;
 
 pub type PeerId = Vec<u8>;
 
+// The very basic peer attributes used to specify a peer in the network
+#[derive(Serialize, Deserialize)]
+pub struct PeerBaseStruct {
+    #[serde(rename = "PubKeyHex")]
+    id: PeerId,
+    #[serde(rename = "NetAddr")]
+    net_addr: String,
+}
+
+// Lachesis peer attributes
 #[derive(Serialize, Deserialize)]
 pub struct LachesisPeerStruct {
     #[serde(rename = "PubKeyHex")]
@@ -40,6 +51,19 @@ pub trait Peer<H>: Send + Sync {
     fn get_sync(&self, pk: PeerId, known: Option<&H>) -> Result<(EventHash, H), Error>;
     fn address(&self) -> String;
     fn id(&self) -> &PeerId;
+}
+
+impl From<&PeerBaseStruct> for LachesisPeerStruct {
+    fn from(p: &PeerBaseStruct) -> Self {
+        LachesisPeerStruct {
+            id: p.id.clone(),
+            net_addr: p.net_addr.clone(),
+            used: 0,
+            height: 0,
+            in_degree: 0,
+            lock: RwLock::new(()),
+        }
+    }
 }
 
 impl LachesisPeer for LachesisPeerStruct {
@@ -82,7 +106,8 @@ impl LachesisPeer for LachesisPeerStruct {
         let mut file = File::open(json_peer_path)?;
         let mut data = String::new();
         file.read_to_string(&mut data)?;
-        Ok(serde_json::from_str(&data)?)
+        let bp: Vec<PeerBaseStruct> = serde_json::from_str(&data)?;
+        Ok(bp.iter().map(|e| LachesisPeerStruct::from(e)).collect())
     }
     fn inc_used(&mut self) {
         let _ = self.lock.write().unwrap();
