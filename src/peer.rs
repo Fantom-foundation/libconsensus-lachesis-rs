@@ -2,25 +2,25 @@ extern crate serde;
 extern crate serde_json;
 use crate::event::event_hash::EventHash;
 use failure::Error;
-use std::sync::RwLock;
 use std::fs::File;
 use std::io::Read;
+use std::sync::RwLock;
 
 pub type PeerId = Vec<u8>;
 
 #[derive(Serialize, Deserialize)]
 pub struct LachesisPeerStruct {
-    #[serde(rename="PubKeyHex")]
+    #[serde(rename = "PubKeyHex")]
     id: PeerId,
-    #[serde(rename="NetAddr")]
+    #[serde(rename = "NetAddr")]
     net_addr: String,
-    #[serde(skip,default)]
+    #[serde(skip, default)]
     used: u64,
-    #[serde(skip,default)]
+    #[serde(skip, default)]
     height: u64,
-    #[serde(skip,default)]
+    #[serde(skip, default)]
     in_degree: u64,
-    #[serde(skip,default)]
+    #[serde(skip, default)]
     lock: RwLock<()>,
 }
 
@@ -43,17 +43,17 @@ pub trait Peer<H>: Send + Sync {
 }
 
 impl LachesisPeer for LachesisPeerStruct {
-    fn new (&self, id: PeerId, net_addr: String) -> LachesisPeerStruct {
-            LachesisPeerStruct {
-                id: id,
-                net_addr: net_addr,
-                used: 0,
-                height: 0,
-                in_degree: 0,
-                lock: RwLock::new(()),
-            }
+    fn new(&self, id: PeerId, net_addr: String) -> LachesisPeerStruct {
+        LachesisPeerStruct {
+            id: id,
+            net_addr: net_addr,
+            used: 0,
+            height: 0,
+            in_degree: 0,
+            lock: RwLock::new(()),
+        }
     }
-    fn set_height(&mut self, height: u64){
+    fn set_height(&mut self, height: u64) {
         let _ = self.lock.write().unwrap();
         self.height = height;
     }
@@ -66,7 +66,7 @@ impl LachesisPeer for LachesisPeerStruct {
         self.height += 1;
         return self.height;
     }
-    fn set_in_degree(&mut self, in_degree: u64){
+    fn set_in_degree(&mut self, in_degree: u64) {
         let _ = self.lock.write().unwrap();
         self.in_degree = in_degree;
     }
