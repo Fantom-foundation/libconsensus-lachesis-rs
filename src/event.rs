@@ -13,6 +13,13 @@ pub mod parents;
 use self::event_hash::EventHash;
 use self::event_signature::EventSignature;
 use self::parents::Parents;
+use crate::libconsensus::TransactionType;
+use crate::peer::PeerBaseStruct;
+
+pub struct InternalTransaction {
+    transaction_type: TransactionType,
+    peer: PeerBaseStruct,
+}
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Event<P: Parents + Clone + Serialize> {
