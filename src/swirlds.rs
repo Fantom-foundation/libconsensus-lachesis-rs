@@ -1,6 +1,7 @@
 use crate::errors::*;
 use crate::event::{
     event_hash::EventHash, event_signature::EventSignature, parents::ParentsPair, Event,
+    InternalTransaction,
 };
 use crate::hashgraph::{Hashgraph, HashgraphWire};
 use crate::node::Node;
@@ -51,6 +52,7 @@ struct NodeInternalState<P: Peer<H>, H: Hashgraph> {
     rounds: Vec<Round>,
     super_majority: usize,
     transactions: Vec<Vec<u8>>,
+    internal_transactions: Vec<InternalTransaction>,
     votes: HashMap<(EventHash, EventHash), bool>,
     _phantom: PhantomData<H>,
 }
@@ -244,6 +246,7 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
             rounds: Vec::new(),
             super_majority: 0,
             transactions: Vec::new(),
+            internal_transactions: Vec::new(),
             votes: HashMap::new(),
             _phantom: PhantomData,
         });
@@ -983,6 +986,7 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
         let mut state = get_from_mutex!(self.state, ResourceNodeInternalStatePoisonError)?;
         let mut event = Event::new(
             state.transactions.clone(),
+            state.internal_transactions.clone(),
             parents,
             self.pk.public_key_bytes().to_vec(),
         );
@@ -1127,7 +1131,7 @@ mod tests {
 
     #[test]
     fn it_should_add_event_correctly() {
-        let event = Event::new(vec![], None, vec![2]);
+        let event = Event::new(vec![], vec![], None, vec![2]);
         let hash = event.hash().unwrap();
         let node = create_node();
         let head = node.head.lock().unwrap().clone().unwrap().clone();
@@ -1191,6 +1195,7 @@ mod tests {
         let node = create_node();
         let head = node.head.lock().unwrap().clone().unwrap().clone();
         let mut event = Event::new(
+            vec![],
             vec![],
             Some(ParentsPair(head.clone(), head.clone())),
             node.pk.public_key_bytes().to_vec(),
