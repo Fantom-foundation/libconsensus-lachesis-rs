@@ -16,8 +16,6 @@ serde = "1.0.80"
 serde_derive = "1.0.80"
 serde_json = "*"
 untrusted = "0.6.2"
-
-[dependencies]
 libtransport-http = { path = "../libtransport-http" }
 libconsensus = { path = "../libconsensus" }
 
