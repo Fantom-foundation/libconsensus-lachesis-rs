@@ -13,7 +13,7 @@ pub mod parents;
 use self::event_hash::EventHash;
 use self::event_signature::EventSignature;
 use self::parents::Parents;
-use crate::libconsensus::TransactionType;
+use libconsensus::TransactionType;
 use crate::peer::PeerBaseStruct;
 
 pub struct InternalTransaction {
