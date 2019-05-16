@@ -13,8 +13,8 @@ pub mod parents;
 use self::event_hash::EventHash;
 use self::event_signature::EventSignature;
 use self::parents::Parents;
-use libconsensus::TransactionType;
 use crate::peer::PeerBaseStruct;
+use libconsensus::TransactionType;
 
 pub struct InternalTransaction {
     transaction_type: TransactionType,
