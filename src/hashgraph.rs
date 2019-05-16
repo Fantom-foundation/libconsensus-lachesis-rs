@@ -253,7 +253,7 @@ mod tests {
     #[test]
     fn it_should_succeed_on_event_with_no_parents() {
         let mut hashgraph = BTreeHashgraph::new();
-        let event = Event::new(vec![], vec![], None, Vec::new());
+        let event = Event::new(vec![], vec![], None, vec![]);
         let hash = event.hash().unwrap();
         hashgraph.insert(hash.clone(), event.clone());
         assert!(hashgraph.is_valid_event(&event).unwrap());
@@ -370,11 +370,11 @@ mod tests {
 
     #[test]
     fn it_should_calculate_the_difference_of_two_hashgraphs() {
-        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, Vec::new());
+        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, vec![]);
         let hash1 = event1.hash().unwrap();
-        let event2 = Event::new(vec![b"fish".to_vec()], vec![], None, Vec::new());
+        let event2 = Event::new(vec![b"fish".to_vec()], vec![], None, vec![]);
         let hash2 = event2.hash().unwrap();
-        let event3 = Event::new(vec![b"ford prefect".to_vec()], vec![], None, Vec::new());
+        let event3 = Event::new(vec![b"ford prefect".to_vec()], vec![], None, vec![]);
         let hash3 = event3.hash().unwrap();
         let mut hg1 = BTreeHashgraph::new();
         let mut hg2 = BTreeHashgraph::new();
@@ -390,7 +390,7 @@ mod tests {
 
     #[test]
     fn it_should_return_self_ancestors() {
-        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, Vec::new());
+        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, vec![]);
         let hash1 = event1.hash().unwrap();
         let event2 = Event::new(vec![b"fish".to_vec()], vec![], None, vec![1]);
         let hash2 = event2.hash().unwrap();
@@ -398,7 +398,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash1.clone(), hash2.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash3 = event3.hash().unwrap();
         let event4 = Event::new(vec![b"42".to_vec()], vec![], None, vec![1]);
@@ -407,7 +407,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash3.clone(), hash4.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash5 = event5.hash().unwrap();
         let event6 = Event::new(vec![b"42".to_vec()], vec![], None, vec![2]);
@@ -416,7 +416,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash5.clone(), hash6.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash7 = event7.hash().unwrap();
         let mut hashgraph = BTreeHashgraph::new();
@@ -436,7 +436,7 @@ mod tests {
 
     #[test]
     fn it_should_return_other_ancestors() {
-        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, Vec::new());
+        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, vec![]);
         let hash1 = event1.hash().unwrap();
         let event2 = Event::new(vec![b"fish".to_vec()], vec![], None, vec![1]);
         let hash2 = event2.hash().unwrap();
@@ -444,7 +444,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash2.clone(), hash1.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash3 = event3.hash().unwrap();
         let event4 = Event::new(vec![b"42".to_vec()], vec![], None, vec![1]);
@@ -453,7 +453,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash4.clone(), hash3.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash5 = event5.hash().unwrap();
         let event6 = Event::new(vec![b"42".to_vec()], vec![], None, vec![2]);
@@ -462,7 +462,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash6.clone(), hash5.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash7 = event7.hash().unwrap();
         let mut hashgraph = BTreeHashgraph::new();
@@ -482,7 +482,7 @@ mod tests {
 
     #[test]
     fn it_should_return_ancestors() {
-        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, Vec::new());
+        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, vec![]);
         let hash1 = event1.hash().unwrap();
         let event2 = Event::new(vec![b"fish".to_vec()], vec![], None, vec![1]);
         let hash2 = event2.hash().unwrap();
@@ -490,7 +490,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash2.clone(), hash1.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash3 = event3.hash().unwrap();
         let event4 = Event::new(vec![b"42".to_vec()], vec![], None, vec![1]);
@@ -499,7 +499,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash4.clone(), hash3.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash5 = event5.hash().unwrap();
         let event6 = Event::new(vec![b"42".to_vec()], vec![], None, vec![2]);
@@ -508,7 +508,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash6.clone(), hash5.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash7 = event7.hash().unwrap();
         let mut hashgraph = BTreeHashgraph::new();
@@ -528,7 +528,7 @@ mod tests {
 
     #[test]
     fn it_should_not_be_higher_if_its_ancestor() {
-        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, Vec::new());
+        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, vec![]);
         let hash1 = event1.hash().unwrap();
         let event2 = Event::new(vec![b"fish".to_vec()], vec![], None, vec![1]);
         let hash2 = event2.hash().unwrap();
@@ -536,7 +536,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash2.clone(), hash1.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash3 = event3.hash().unwrap();
         let event4 = Event::new(vec![b"42".to_vec()], vec![], None, vec![1]);
@@ -545,7 +545,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash4.clone(), hash3.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash5 = event5.hash().unwrap();
         let event6 = Event::new(vec![b"42".to_vec()], vec![], None, vec![2]);
@@ -554,7 +554,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash6.clone(), hash5.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash7 = event7.hash().unwrap();
         let mut hashgraph = BTreeHashgraph::new();
@@ -572,7 +572,7 @@ mod tests {
     fn it_should_be_higher_if_its_child() {
         let payloads = [b"42".to_vec(), b"fish".to_vec(), b"ford prefect".to_vec()];
 
-        let event1 = Event::new(vec![payloads[0].clone()], vec![], None, Vec::new());
+        let event1 = Event::new(vec![payloads[0].clone()], vec![], None, vec![]);
         let hash1 = event1.hash().unwrap();
         let event2 = Event::new(vec![payloads[1].clone()], vec![], None, vec![1]);
         let hash2 = event2.hash().unwrap();
@@ -580,7 +580,7 @@ mod tests {
             vec![payloads[2].clone()],
             vec![],
             Some(ParentsPair(hash2.clone(), hash1.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash3 = event3.hash().unwrap();
         let event4 = Event::new(vec![payloads[0].clone()], vec![], None, vec![1]);
@@ -589,7 +589,7 @@ mod tests {
             vec![payloads[2].clone()],
             vec![],
             Some(ParentsPair(hash4.clone(), hash3.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash5 = event5.hash().unwrap();
         let event6 = Event::new(vec![payloads[0].clone()], vec![], None, vec![2]);
@@ -598,7 +598,7 @@ mod tests {
             vec![payloads[2].clone()],
             vec![],
             Some(ParentsPair(hash6.clone(), hash5.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash7 = event7.hash().unwrap();
         let mut hashgraph = BTreeHashgraph::new();
@@ -614,7 +614,7 @@ mod tests {
 
     #[test]
     fn it_should_return_expected_events_that_parents_can_see() {
-        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, Vec::new());
+        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, vec![]);
         let hash1 = event1.hash().unwrap();
         let event2 = Event::new(vec![b"fish".to_vec()], vec![], None, vec![1]);
         let hash2 = event2.hash().unwrap();
@@ -622,7 +622,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash2.clone(), hash1.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash3 = event3.hash().unwrap();
         let event4 = Event::new(vec![b"42".to_vec()], vec![], None, vec![1]);
@@ -631,7 +631,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash4.clone(), hash3.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash5 = event5.hash().unwrap();
         let event6 = Event::new(vec![b"42".to_vec()], vec![], None, vec![2]);
@@ -640,7 +640,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash6.clone(), hash5.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash7 = event7.hash().unwrap();
         let mut hashgraph = BTreeHashgraph::new();
@@ -656,7 +656,7 @@ mod tests {
 
     #[test]
     fn it_should_be_higher_if_has_more_ancestors() {
-        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, Vec::new());
+        let event1 = Event::new(vec![b"42".to_vec()], vec![], None, vec![]);
         let hash1 = event1.hash().unwrap();
         let event2 = Event::new(vec![b"fish".to_vec()], vec![], None, vec![1]);
         let hash2 = event2.hash().unwrap();
@@ -664,7 +664,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash2.clone(), hash1.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash3 = event3.hash().unwrap();
         let event4 = Event::new(vec![b"42".to_vec()], vec![], None, vec![1]);
@@ -673,7 +673,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash4.clone(), hash3.clone())),
-            Vec::new(),
+            vec![],
         );
         event5.add_can_see(vec![2], hash3.clone());
         event5.add_can_see(vec![1], hash4.clone());
@@ -685,7 +685,7 @@ mod tests {
             vec![b"ford prefect".to_vec()],
             vec![],
             Some(ParentsPair(hash6.clone(), hash5.clone())),
-            Vec::new(),
+            vec![],
         );
         let hash7 = event7.hash().unwrap();
         let mut hashgraph = BTreeHashgraph::new();

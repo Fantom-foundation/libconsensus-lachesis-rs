@@ -65,7 +65,7 @@ impl Peer<BTreeHashgraph> for TcpPeer {
         _pk: PeerId,
         _k: Option<&BTreeHashgraph>,
     ) -> Result<(EventHash, BTreeHashgraph), Error> {
-        let mut buffer = Vec::new();
+        let mut buffer = vec![];
         let mut stream = TcpStream::connect(&self.address.clone())?;
         let mut last_received = 0;
         while last_received == 0 {
@@ -85,7 +85,7 @@ impl Peer<BTreeHashgraph> for TcpPeer {
 
 impl Peer<Opera> for TcpPeer {
     fn get_sync(&self, _pk: PeerId, _k: Option<&Opera>) -> Result<(EventHash, Opera), Error> {
-        let mut buffer = Vec::new();
+        let mut buffer = vec![];
         let mut stream = TcpStream::connect(&self.address.clone())?;
         let mut last_received = 0;
         while last_received == 0 {

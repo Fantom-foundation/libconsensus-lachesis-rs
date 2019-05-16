@@ -343,6 +343,6 @@ impl<P: Peer<Opera> + Clone> Node for Lachesis<P> {
     }
 
     fn get_ordered_events(&self) -> Result<Vec<Event<ParentsList>>, Error> {
-        Ok(Vec::new())
+        Ok(vec![])
     }
 }

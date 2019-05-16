@@ -241,12 +241,12 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
         let state = Mutex::new(NodeInternalState {
             consensus: BTreeSet::new(),
             network: HashMap::new(),
-            ordered_events: Vec::new(),
+            ordered_events: vec![],
             pending_events: HashSet::new(),
-            rounds: Vec::new(),
+            rounds: vec![],
             super_majority: 0,
-            transactions: Vec::new(),
-            internal_transactions: Vec::new(),
+            transactions: vec![],
+            internal_transactions: vec![],
             votes: HashMap::new(),
             _phantom: PhantomData,
         });
@@ -990,7 +990,7 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
             parents,
             self.pk.public_key_bytes().to_vec(),
         );
-        state.transactions = Vec::new();
+        state.transactions = vec![];
         if event.is_root() {
             event.set_timestamp(get_current_timestamp())
         }
