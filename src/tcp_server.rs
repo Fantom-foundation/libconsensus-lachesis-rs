@@ -118,9 +118,8 @@ impl TcpApp {
                 let mut stream = stream_result.unwrap();
                 let message = answer_thread_node.node.respond_message(None).unwrap();
                 let payload = serialize(&message).unwrap();
-                stream.write(&payload).unwrap();
+                stream.write_all(&payload).unwrap();
             }
-            ()
         });
         let sync_handle = spawn(move || {
             let mut rng = rand::thread_rng();

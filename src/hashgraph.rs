@@ -32,9 +32,15 @@ pub trait Hashgraph: Send + Sync {
 #[derive(Clone, Debug)]
 pub struct BTreeHashgraph(BTreeMap<EventHash, Event<ParentsPair>>);
 
+impl Default for BTreeHashgraph {
+    fn default() -> BTreeHashgraph {
+        BTreeHashgraph(BTreeMap::new())
+    }
+}
+
 impl BTreeHashgraph {
     pub fn new() -> BTreeHashgraph {
-        BTreeHashgraph(BTreeMap::new())
+        BTreeHashgraph::default()
     }
 }
 
@@ -81,8 +87,8 @@ fn _get_ancestors<'a>(
             None
         }
     })
-    .take_while(|e| e.is_some())
-    .map(|v| v.unwrap()) // This is safe because of the `take_while`
+    .take_while(Option::is_some)
+    .map(Option::unwrap) // This is safe because of the `take_while`
     .collect();
     if error.is_some() {
         return Err(error.unwrap());
@@ -92,15 +98,17 @@ fn _get_ancestors<'a>(
 
 impl Hashgraph for BTreeHashgraph {
     fn get_mut(&mut self, id: &EventHash) -> Result<&mut Event<ParentsPair>, Error> {
-        self.0.get_mut(id).ok_or(Error::from(HashgraphError::new(
-            HashgraphErrorType::EventNotFound,
-        )))
+        Ok(self
+            .0
+            .get_mut(id)
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::EventNotFound))?)
     }
 
     fn get(&self, id: &EventHash) -> Result<&Event<ParentsPair>, Error> {
-        self.0.get(id).ok_or(Error::from(HashgraphError::new(
-            HashgraphErrorType::EventNotFound,
-        )))
+        Ok(self
+            .0
+            .get(id)
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::EventNotFound))?)
     }
 
     fn insert(&mut self, hash: EventHash, event: Event<ParentsPair>) {
@@ -146,10 +154,10 @@ impl Hashgraph for BTreeHashgraph {
                 let self_parent_event = self.get(self_parent)?;
                 let other_parent_event = self.get(other_parent)?;
                 let mut result = HashMap::new();
-                for (k, v) in self_parent_event.can_see().into_iter() {
+                for (k, v) in self_parent_event.can_see().iter() {
                     result.insert(k.clone(), v.clone());
                 }
-                for (k, other) in other_parent_event.can_see().into_iter() {
+                for (k, other) in other_parent_event.can_see().iter() {
                     if result.contains_key(k) {
                         let value = (&result[k]).clone();
                         if self.higher(other, &value)? {
@@ -199,11 +207,11 @@ impl Hashgraph for BTreeHashgraph {
                 Ok(hash) => Some(hash),
                 Err(e) => {
                     debug!(target: "swirlds", "{}", e);
-                    return None;
+                    None
                 }
             })
-            .filter(|e| e.is_some())
-            .map(|e| e.unwrap())
+            .filter(Option::is_some)
+            .map(Option::unwrap)
             .collect()
     }
 
@@ -236,11 +244,7 @@ impl Hashgraph for BTreeHashgraph {
     }
 
     fn get_events(&self) -> Vec<EventHash> {
-        self.0
-            .keys()
-            .map(|h| h.clone())
-            .collect::<Vec<EventHash>>()
-            .clone()
+        self.0.keys().cloned().collect::<Vec<EventHash>>().clone()
     }
 }
 

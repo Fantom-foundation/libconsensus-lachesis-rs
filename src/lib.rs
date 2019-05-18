@@ -9,7 +9,7 @@ extern crate serde_derive;
 
 macro_rules! get_from_mutex {
     ($resource: expr, $error: ident) => {
-        $resource.lock().map_err(|e| $error::from(e))
+        $resource.lock().map_err($error::from)
     };
 }
 
@@ -30,5 +30,3 @@ pub use crate::lachesis::Lachesis;
 pub use crate::node::Node;
 pub use crate::peer::{Peer, PeerId};
 pub use crate::swirlds::Swirlds;
-use libtransport_http::server::ws_message::InternodeMessage;
-use libtransport_http::server::Server;

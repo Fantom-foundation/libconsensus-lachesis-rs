@@ -65,7 +65,7 @@ impl<P: Peer<Opera> + Clone> Lachesis<P> {
             .values()
             .choose_multiple(rng, self.k - 1)
             .into_iter()
-            .map(|p| p.clone())
+            .cloned()
             .collect())
     }
 
@@ -132,8 +132,8 @@ impl<P: Peer<Opera> + Clone> Lachesis<P> {
                     None
                 }
             })
-            .filter(|eh| eh.is_some())
-            .map(|eh| eh.unwrap())
+            .filter(Option::is_some)
+            .map(Option::unwrap)
             .count();
         if error.is_some() {
             return Err(error.unwrap());
@@ -228,12 +228,10 @@ impl<P: Peer<Opera> + Clone> Lachesis<P> {
                         }
                     }
                 })
-                .filter(|h: &Option<usize>| h.is_some())
-                .map(|h: Option<usize>| h.unwrap())
+                .filter(Option::is_some)
+                .map(Option::unwrap)
                 .min()
-                .ok_or(Error::from(HashgraphError::new(
-                    HashgraphErrorType::NoLamportTimeSet,
-                )))?;
+                .ok_or_else(|| HashgraphError::new(HashgraphErrorType::NoLamportTimeSet))?;
             frame.set_clotho_time(root.clone(), t);
         }
         if error.is_some() {
@@ -247,27 +245,19 @@ impl<P: Peer<Opera> + Clone> Lachesis<P> {
         let opera = get_from_mutex!(self.opera, ResourceHashgraphPoisonError)?;
         for r in root_set {
             let event = opera.get_event(&r)?;
-            let count = counts
-                .get(&event.lamport_timestamp)
-                .map(|v: &usize| v.clone())
-                .unwrap_or(0);
+            let count = counts.get(&event.lamport_timestamp).copied().unwrap_or(0);
             counts.insert(event.lamport_timestamp, count + 1);
         }
-        let max_count = counts
+        let max_count = *counts
             .values()
             .min()
-            .ok_or(Error::from(HashgraphError::new(
-                HashgraphErrorType::NoLamportTimeSet,
-            )))?
-            .clone();
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::NoLamportTimeSet))?;
         let time = counts
             .iter()
-            .filter(|(_t, c)| c.clone() == &max_count)
-            .map(|(t, _c)| t.clone())
+            .filter(|(_t, c)| **c == max_count)
+            .map(|(t, _c)| *t)
             .min()
-            .ok_or(Error::from(HashgraphError::new(
-                HashgraphErrorType::NoLamportTimeSet,
-            )))?;
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::NoLamportTimeSet))?;
         Ok(time)
     }
 
@@ -277,7 +267,7 @@ impl<P: Peer<Opera> + Clone> Lachesis<P> {
         let mut new_frame = vec![];
         for e in opera.unfamous_events().clone() {
             let is_root =
-                e.flag_table.is_empty() || e.flag_table.len() > 2 / 3 * self.network.len();
+                e.flag_table.is_empty() || e.flag_table.len() > (2 * self.network.len()) / 3;
             if is_root {
                 let hash = e.event.hash()?;
                 new_root.push(hash.clone());

@@ -13,13 +13,6 @@ pub mod parents;
 use self::event_hash::EventHash;
 use self::event_signature::EventSignature;
 use self::parents::Parents;
-use crate::peer::PeerBaseStruct;
-use libconsensus::TransactionType;
-
-pub struct InternalTransaction {
-    transaction_type: TransactionType,
-    peer: PeerBaseStruct,
-}
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Event<P: Parents + Clone + Serialize> {
@@ -60,11 +53,10 @@ impl<P: Parents + Clone + Serialize> Event<P> {
 
     #[inline]
     pub fn timestamp(&self) -> Result<u64, Error> {
-        self.timestamp
-            .clone()
-            .ok_or(Error::from(EventError::new(EventErrorType::NoTimestamp {
-                hash: self.hash()?,
-            })))
+        Ok(self.timestamp.ok_or_else(|| match self.hash() {
+            Err(e) => e,
+            Ok(h) => Error::from(EventError::new(EventErrorType::NoTimestamp { hash: h })),
+        })?)
     }
 
     #[inline]
@@ -94,11 +86,10 @@ impl<P: Parents + Clone + Serialize> Event<P> {
 
     #[inline]
     pub fn signature(&self) -> Result<EventSignature, Error> {
-        self.signature
-            .clone()
-            .ok_or(Error::from(EventError::new(EventErrorType::NoSignature {
-                hash: self.hash()?,
-            })))
+        Ok(self.signature.clone().ok_or_else(|| match self.hash() {
+            Err(e) => e,
+            Ok(h) => Error::from(EventError::new(EventErrorType::NoSignature { hash: h })),
+        })?)
     }
 
     #[inline]
@@ -133,15 +124,15 @@ impl<P: Parents + Clone + Serialize> Event<P> {
 
     #[inline]
     pub fn round(&self) -> Result<usize, Error> {
-        self.round
-            .ok_or(Error::from(EventError::new(EventErrorType::RoundNotSet {
-                hash: self.hash()?,
-            })))
+        Ok(self.round.ok_or_else(|| match self.hash() {
+            Err(e) => e,
+            Ok(h) => Error::from(EventError::new(EventErrorType::RoundNotSet { hash: h })),
+        })?)
     }
 
     #[inline]
     pub fn maybe_round(&self) -> Option<usize> {
-        self.round.clone()
+        self.round
     }
 
     #[inline]
@@ -156,7 +147,7 @@ impl<P: Parents + Clone + Serialize> Event<P> {
 
     #[inline]
     pub fn self_parent(&self) -> Result<EventHash, Error> {
-        let mut error: Option<Error> = None;
+        let mut error: Option<EventError> = None;
         let none_error = format_err!("self_parent() returned None");
 
         match self
@@ -174,18 +165,16 @@ impl<P: Parents + Clone + Serialize> Event<P> {
                             EventHash([0; 32])
                         }
                     };
-                    error = Some(Error::from(EventError::new(EventErrorType::NoSelfParent {
-                        hash: hash,
-                    })));
+                    error = Some(EventError::new(EventErrorType::NoSelfParent { hash }));
                     None
                 }
             })
-            .filter(|p| p.is_some())
+            .filter(Option::is_some)
             .unwrap()
         {
             Some(p) => Ok(p),
             None => Err(if error.is_some() {
-                error.unwrap()
+                Error::from(error.unwrap())
             } else {
                 none_error
             }),
@@ -215,7 +204,7 @@ impl<P: Parents + Clone + Serialize> Event<P> {
         let value = (
             self.payload.clone(),
             self.parents.clone(),
-            self.timestamp.clone(),
+            self.timestamp,
             self.creator.clone(),
         );
         let bytes = serialize(&value)?;

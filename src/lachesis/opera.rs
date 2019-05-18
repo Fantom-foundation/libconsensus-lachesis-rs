@@ -27,13 +27,19 @@ pub struct Opera {
     pub lamport_timestamp: usize,
 }
 
-impl Opera {
-    pub fn new() -> Opera {
+impl Default for Opera {
+    fn default() -> Opera {
         let graph = HashMap::new();
         Opera {
             graph,
             lamport_timestamp: 0,
         }
+    }
+}
+
+impl Opera {
+    pub fn new() -> Opera {
+        Opera::default()
     }
 
     pub fn sync(&mut self, other: Opera) {
@@ -84,27 +90,25 @@ impl Opera {
     }
 
     pub fn get_event_mut(&mut self, h: &EventHash) -> Result<&mut OperaEvent, Error> {
-        self.graph.get_mut(h).ok_or(Error::from(HashgraphError::new(
-            HashgraphErrorType::EventNotFound,
-        )))
+        Ok(self
+            .graph
+            .get_mut(h)
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::EventNotFound))?)
     }
 
     pub fn get_event(&self, h: &EventHash) -> Result<OperaEvent, Error> {
-        self.graph
+        Ok(self
+            .graph
             .get(h)
-            .map(|v| v.clone())
-            .ok_or(Error::from(HashgraphError::new(
-                HashgraphErrorType::EventNotFound,
-            )))
+            .cloned()
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::EventNotFound))?)
     }
 
     pub fn set_root(&mut self, h: &EventHash) -> Result<(), Error> {
         let mut e = self
             .graph
             .get_mut(h)
-            .ok_or(Error::from(HashgraphError::new(
-                HashgraphErrorType::EventNotFound,
-            )))?;
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::EventNotFound))?;
         e.event_type = OperaEventType::Root;
         e.flag_table = HashSet::new();
         Ok(())
@@ -114,9 +118,7 @@ impl Opera {
         let mut e = self
             .graph
             .get_mut(h)
-            .ok_or(Error::from(HashgraphError::new(
-                HashgraphErrorType::EventNotFound,
-            )))?;
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::EventNotFound))?;
         e.event_type = OperaEventType::Clotho(None);
         Ok(())
     }
@@ -131,9 +133,7 @@ impl Opera {
         let mut e = self
             .graph
             .get_mut(h)
-            .ok_or(Error::from(HashgraphError::new(
-                HashgraphErrorType::EventNotFound,
-            )))?;
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::EventNotFound))?;
         e.frame = frame;
         Ok(())
     }
@@ -144,14 +144,12 @@ impl Opera {
             let event = self
                 .graph
                 .get(p)
-                .ok_or(Error::from(HashgraphError::new(
-                    HashgraphErrorType::EventNotFound,
-                )))?
+                .ok_or_else(|| HashgraphError::new(HashgraphErrorType::EventNotFound))?
                 .clone();
             if event.event_type == OperaEventType::Root {
                 ft.insert(p.clone());
             }
-            ft = ft.union(&event.flag_table).map(|e| e.clone()).collect();
+            ft = ft.union(&event.flag_table).cloned().collect();
         }
         Ok(ft)
     }
@@ -170,8 +168,8 @@ impl Opera {
                 Some(graph_at_k) => Some((k.clone(), graph_at_k.clone())),
                 None => None,
             })
-            .filter(|k| k.is_some())
-            .map(|k| k.unwrap())
+            .filter(Option::is_some)
+            .map(Option::unwrap)
             .collect();
         OperaWire {
             graph: diff_keys,
@@ -192,9 +190,7 @@ impl Opera {
         let event = self
             .graph
             .get(hash)
-            .ok_or(Error::from(HashgraphError::new(
-                HashgraphErrorType::EventNotFound,
-            )))?
+            .ok_or_else(|| HashgraphError::new(HashgraphErrorType::EventNotFound))?
             .clone();
         let result = match event.event.parents() {
             None => vec![],
@@ -206,11 +202,11 @@ impl Opera {
                             Ok(ancestors) => Some(ancestors),
                             Err(e) => {
                                 debug!(target: "swirlds", "{}", e);
-                                return None;
+                                None
                             }
                         })
-                        .filter(|ph| ph.is_some())
-                        .map(|v| v.unwrap().into_iter())
+                        .filter(Option::is_some)
+                        .map(Option::unwrap)
                         .flatten()
                         .collect();
                 base.append(&mut prev);

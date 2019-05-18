@@ -21,7 +21,7 @@ impl Round {
     }
 
     pub fn witnesses(&self) -> Vec<EventHash> {
-        self.witnesses.values().map(|h| h.clone()).collect()
+        self.witnesses.values().cloned().collect()
     }
 
     pub fn witnesses_map(&self) -> &HashMap<PeerId, EventHash> {
