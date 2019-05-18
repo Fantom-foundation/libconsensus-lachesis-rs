@@ -215,7 +215,7 @@ impl<P: Parents + Clone + Serialize> Event<P> {
         self.signature
             .clone()
             .map(|s| s.verify(&self, &self.creator))
-            .unwrap_or(Err(Error::from(EventError::new(
+            .unwrap_or_else(|| Err(Error::from(EventError::new(
                 EventErrorType::UnsignedEvent { hash: self.hash()? },
             ))))?;
         Ok(hash.as_ref() == self.hash()?.as_ref())
