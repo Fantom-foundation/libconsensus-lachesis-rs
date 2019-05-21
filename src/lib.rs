@@ -6,12 +6,10 @@ extern crate log;
 extern crate proptest;
 #[macro_use]
 extern crate serde_derive;
-extern crate libconsensus;
-extern crate libtransport_http;
 
 macro_rules! get_from_mutex {
     ($resource: expr, $error: ident) => {
-        $resource.lock().map_err(|e| $error::from(e))
+        $resource.lock().map_err($error::from)
     };
 }
 
@@ -29,8 +27,6 @@ pub mod tcp_server;
 pub use crate::event::{event_hash::EventHash, Event};
 pub use crate::hashgraph::{BTreeHashgraph, Hashgraph, HashgraphWire};
 pub use crate::lachesis::Lachesis;
-use crate::libtransport_http::server::ws_message::InternodeMessage;
-use crate::libtransport_http::server::Server;
 pub use crate::node::Node;
 pub use crate::peer::{Peer, PeerId};
 pub use crate::swirlds::Swirlds;

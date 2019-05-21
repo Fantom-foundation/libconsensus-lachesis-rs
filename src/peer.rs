@@ -69,8 +69,8 @@ impl From<&PeerBaseStruct> for LachesisPeerStruct {
 impl LachesisPeer for LachesisPeerStruct {
     fn new(&self, id: PeerId, net_addr: String) -> LachesisPeerStruct {
         LachesisPeerStruct {
-            id: id,
-            net_addr: net_addr,
+            id,
+            net_addr,
             used: 0,
             height: 0,
             in_degree: 0,
@@ -83,12 +83,12 @@ impl LachesisPeer for LachesisPeerStruct {
     }
     fn get_height(&self) -> u64 {
         let _ = self.lock.read().unwrap();
-        return self.height;
+        self.height
     }
     fn next_height(&mut self) -> u64 {
         let _ = self.lock.write().unwrap();
         self.height += 1;
-        return self.height;
+        self.height
     }
     fn set_in_degree(&mut self, in_degree: u64) {
         let _ = self.lock.write().unwrap();
@@ -96,7 +96,7 @@ impl LachesisPeer for LachesisPeerStruct {
     }
     fn get_in_degree(&self) -> u64 {
         let _ = self.lock.read().unwrap();
-        return self.in_degree;
+        self.in_degree
     }
     fn inc_in_degree(&mut self) {
         let _ = self.lock.write().unwrap();
@@ -107,7 +107,7 @@ impl LachesisPeer for LachesisPeerStruct {
         let mut data = String::new();
         file.read_to_string(&mut data)?;
         let bp: Vec<PeerBaseStruct> = serde_json::from_str(&data)?;
-        Ok(bp.iter().map(|e| LachesisPeerStruct::from(e)).collect())
+        Ok(bp.iter().map(LachesisPeerStruct::from).collect())
     }
     fn inc_used(&mut self) {
         let _ = self.lock.write().unwrap();

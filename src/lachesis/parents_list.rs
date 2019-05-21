@@ -10,7 +10,7 @@ impl Parents for ParentsList {
         Ok(self
             .0
             .first()
-            .ok_or(Error::from(ParentsError::EmptyParents))?
+            .ok_or_else(|| ParentsError::EmptyParents)?
             .clone())
     }
 }

@@ -65,7 +65,7 @@ impl<P: Peer<H>, H: Hashgraph + Clone + fmt::Debug> fmt::Debug for Swirlds<P, H>
                 for _ in 0..n_nodes {
                     write!(f, "    |     ")?;
                 }
-                writeln!(f, "")?;
+                writeln!(f)?;
             }
             Ok(())
         }
@@ -94,7 +94,7 @@ impl<P: Peer<H>, H: Hashgraph + Clone + fmt::Debug> fmt::Debug for Swirlds<P, H>
                     write!(f, "          ")?;
                 }
             }
-            writeln!(f, "")?;
+            writeln!(f)?;
             Ok(())
         }
         fn print_other_parents<H: Hashgraph>(
@@ -122,7 +122,7 @@ impl<P: Peer<H>, H: Hashgraph + Clone + fmt::Debug> fmt::Debug for Swirlds<P, H>
                     write!(f, "          ")?;
                 }
             }
-            writeln!(f, "")?;
+            writeln!(f)?;
             Ok(())
         }
         fn print_rounds<H: Hashgraph>(
@@ -153,7 +153,7 @@ impl<P: Peer<H>, H: Hashgraph + Clone + fmt::Debug> fmt::Debug for Swirlds<P, H>
                     write!(f, "          ")?;
                 }
             }
-            writeln!(f, "")?;
+            writeln!(f)?;
             Ok(())
         }
 
@@ -195,7 +195,7 @@ impl<P: Peer<H>, H: Hashgraph + Clone + fmt::Debug> fmt::Debug for Swirlds<P, H>
         for peer in last_event_per_peer.keys() {
             write!(f, "{}  ", peer.printable_hash())?;
         }
-        writeln!(f, "")?;
+        writeln!(f)?;
         write!(f, "        ")?;
         for root in last_event_per_peer.values() {
             if let Some(root) = root {
@@ -204,7 +204,7 @@ impl<P: Peer<H>, H: Hashgraph + Clone + fmt::Debug> fmt::Debug for Swirlds<P, H>
                 write!(f, "          ")?;
             }
         }
-        writeln!(f, "")?;
+        writeln!(f)?;
         let h = (*hashgraph).clone();
         print_rounds(f, &mut last_event_per_peer, &h)?;
         match update_last_events(&mut last_event_per_peer, &h) {
@@ -222,8 +222,8 @@ impl<P: Peer<H>, H: Hashgraph + Clone + fmt::Debug> fmt::Debug for Swirlds<P, H>
                 Err(e) => debug!(target: "fmt::Debug::fmt::update_last_events", "{}", e),
             }
         }
-        writeln!(f, "")?;
-        writeln!(f, "")
+        writeln!(f)?;
+        writeln!(f)
     }
 }
 
@@ -283,12 +283,12 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
             "[Node {:?}] Merging {:?}",
             self.get_id().printable_hash(),
             res.iter()
-                .map(|v| v.printable_hash())
+                .map(PrintableHash::printable_hash)
                 .collect::<Vec<String>>()
         );
         debug!("{:?}", self);
 
-        if res.len() > 0 {
+        if res.is_empty() {
             let new_head = self.maybe_change_head(remote_head, remote_hg.clone())?;
             res.extend(new_head.into_iter());
         }
@@ -333,15 +333,13 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
                         } else {
                             self.vote(veh.clone(), eh, vote)?;
                         }
+                    } else if stake > super_majority {
+                        self.vote(veh.clone(), eh, vote)?;
                     } else {
-                        if stake > super_majority {
-                            self.vote(veh.clone(), eh, vote)?;
-                        } else {
-                            let hashgraph =
-                                get_from_mutex!(self.hashgraph, ResourceHashgraphPoisonError)?;
-                            let new_vote = hashgraph.get(&veh)?.signature()?.as_ref()[0] != 0;
-                            self.vote(veh.clone(), eh, new_vote)?;
-                        }
+                        let hashgraph =
+                            get_from_mutex!(self.hashgraph, ResourceHashgraphPoisonError)?;
+                        let new_vote = hashgraph.get(&veh)?.signature()?.as_ref()[0] != 0;
+                        self.vote(veh.clone(), eh, new_vote)?;
                     }
                 }
             }
@@ -356,10 +354,10 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
                     Ok(famous) => Some(famous),
                     Err(e) => {
                         debug!(target: "swirlds", "{}", e);
-                        return None;
+                        None
                     }
                 })
-                .filter(|f| f.is_some())
+                .filter(Option::is_some)
                 .map(|f| f.unwrap().into()),
         );
         info!(
@@ -370,8 +368,7 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
         debug!("{:?}", self);
 
         let mut state = get_from_mutex!(self.state, ResourceNodeInternalStatePoisonError)?;
-        state.consensus =
-            BTreeSet::from_iter(state.consensus.union(&new_consensus).map(|r| r.clone()));
+        state.consensus = BTreeSet::from_iter(state.consensus.union(&new_consensus).copied());
 
         Ok(new_consensus)
     }
@@ -401,21 +398,20 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
     }
 
     pub fn get_head(&self) -> Result<EventHash, Error> {
-        get_from_mutex!(self.head, ResourceHeadPoisonError)?
+        let eh = get_from_mutex!(self.head, ResourceHeadPoisonError)?
             .clone()
-            .map(|v| v.clone())
-            .ok_or(Error::from(NodeError::new(NodeErrorType::NoHead)))
+            .ok_or_else(|| NodeError::new(NodeErrorType::NoHead))?;
+        Ok(eh)
     }
 
-    pub fn get_peer(&self, id: &PeerId) -> Result<Arc<P>, Error> {
+    pub fn get_peer(&self, id: &[u8]) -> Result<Arc<P>, Error> {
         let state = get_from_mutex!(self.state, ResourceNodeInternalStatePoisonError)?;
-        state
+        let p = state
             .network
             .get(id)
-            .map(|v| v.clone())
-            .ok_or(Error::from(NodeError::new(NodeErrorType::PeerNotFound(
-                id.clone(),
-            ))))
+            .cloned()
+            .ok_or_else(|| NodeError::new(NodeErrorType::PeerNotFound(id.to_vec())))?;
+        Ok(p)
     }
 
     fn update_order(&self) -> Result<(), Error> {
@@ -431,17 +427,17 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
                     .map(|h| (h.clone(), hashgraph.get(h).unwrap().maybe_round()))
                     .filter(|(_, h): &(EventHash, Option<usize>)| h.is_some())
                     .map(|(h, r): (EventHash, Option<usize>)| (h, r.expect("can't happen")))
-                    .filter(move |(_, cr): &(EventHash, usize)| r == cr.clone())
+                    .filter(move |(_, cr): &(EventHash, usize)| r == *cr)
                     .map(|(h, _): (EventHash, usize)| h)
             })
             .map(|h| hashgraph.get(&h))
             .collect::<Result<Vec<&Event<ParentsPair>>, Error>>()?
             .into_iter()
-            .map(|v| v.clone())
+            .cloned()
             .filter(|e: &Event<ParentsPair>| e.timestamp().is_ok())
             .map(|e: Event<ParentsPair>| (e.timestamp().expect("can't happen"), e))
             .collect::<Vec<(u64, Event<ParentsPair>)>>();
-        hashe_pairs.sort_by_key(|(t, _)| t.clone());
+        hashe_pairs.sort_by_key(|(t, _)| *t);
         let events: Vec<Event<ParentsPair>> = hashe_pairs.into_iter().map(|(_, e)| e).collect();
         state.ordered_events = events;
         Ok(())
@@ -546,16 +542,16 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
                     Ok(timestamp) => Some(timestamp),
                     Err(e) => {
                         debug!(target: "swirlds", "{}", e);
-                        return None;
+                        None
                     }
                 },
                 Err(e) => {
                     debug!(target: "swirlds", "{}", e);
-                    return None;
+                    None
                 }
             })
-            .filter(|eh| eh.is_some())
-            .map(|eh| eh.unwrap())
+            .filter(Option::is_some)
+            .map(Option::unwrap)
             .collect::<Vec<u64>>();
         let times_sum: u64 = times.iter().sum();
         let new_time = times_sum / times.len() as u64;
@@ -620,15 +616,15 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
                 Ok(event) => Some(event),
                 Err(e) => {
                     debug!(target: "swirlds", "{}", e);
-                    return None;
+                    None
                 }
             })
             //                .collect();
-            .filter(|event| event.is_some())
-            .map(|eh| eh.unwrap())
+            .filter(Option::is_some)
+            .map(Option::unwrap)
             .filter(|eh| eh.is_famous())
-            .map(|eh| eh.hash())
-            .map(|ef| ef.unwrap())
+            .map(Event::hash)
+            .map(Result::unwrap)
             //            .map(|f| f)
             .collect();
         Ok(b)
@@ -645,12 +641,12 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
                 Ok(eh_hg) => Some(eh_hg),
                 Err(e) => {
                     debug!(target: "swirlds", "{}", e);
-                    return None;
+                    None
                 }
             })
-            .filter(|eh_hg_opt| eh_hg_opt.is_some())
-            .map(|eh_hg_opt| eh_hg_opt.unwrap())
-            .all(|e| e.is_famous()))
+            .filter(Option::is_some)
+            .map(Option::unwrap)
+            .all(Event::is_famous))
     }
 
     #[inline]
@@ -697,14 +693,14 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
                 Ok(hg) => Some(hg),
                 Err(e) => {
                     debug!(target: "swirlds", "{}", e);
-                    return None;
+                    None
                 }
             })
-            .filter(|hg_opt| hg_opt.is_some())
-            .map(|hg_opt| hg_opt.unwrap())
+            .filter(Option::is_some)
+            .map(Option::unwrap)
             .filter(|hg| hg.is_undefined())
-            .map(|hg| hg.hash())
-            .map(|hg| hg.unwrap())
+            .map(Event::hash)
+            .map(Result::unwrap)
             .map(|ef| (round, ef))
             .collect();
         Ok(a)
@@ -810,7 +806,7 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
         let mut r = self.get_parents_round(hash)?;
         let hits = self.get_hits_per_events(r, &events_parents_can_see)?;
         let sm = self.get_super_majority()?;
-        let votes = hits.values().map(|v| v.clone()).filter(|v| *v > sm);
+        let votes = hits.values().copied().filter(|v| *v > sm);
         if votes.sum::<usize>() > sm {
             r += 1;
         }
@@ -833,7 +829,7 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
                 for (_c, _h) in event.can_see().iter() {
                     let seen_event = hashgraph.get(_h)?;
                     if seen_event.round()? == r {
-                        let prev = hits.get(_c).map(|v| v.clone()).unwrap_or(0);
+                        let prev = hits.get(_c).copied().unwrap_or(0);
                         hits.insert(_c.clone(), prev + 1);
                     }
                 }
@@ -846,9 +842,10 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
     fn get_parents_round(&self, hash: &EventHash) -> Result<usize, Error> {
         let hashgraph = get_from_mutex!(self.hashgraph, ResourceHashgraphPoisonError)?;
         let event = hashgraph.get(hash)?;
-        let parents = event.parents().clone().ok_or(Error::from(EventError::new(
-            EventErrorType::NoParents { hash: hash.clone() },
-        )))?;
+        let parents = event
+            .parents()
+            .clone()
+            .ok_or_else(|| EventError::new(EventErrorType::NoParents { hash: hash.clone() }))?;
         parents.max_round(hashgraph.clone())
     }
 
@@ -957,12 +954,12 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
     #[inline]
     fn select_peer<R: Rng>(&self, rng: &mut R) -> Result<Arc<P>, Error> {
         let state = get_from_mutex!(self.state, ResourceNodeInternalStatePoisonError)?;
-        state
+        let p = state
             .network
             .values()
             .choose(rng)
-            .ok_or(Error::from(NodeError::new(NodeErrorType::EmptyNetwork)))
-            .map(|p| p.clone())
+            .ok_or_else(|| NodeError::new(NodeErrorType::EmptyNetwork))?;
+        Ok(p.clone())
     }
 
     fn create_new_head(
@@ -1006,7 +1003,8 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
         let hash = e.hash()?;
         self.add_pending_event(hash.clone())?;
         let mut hashgraph = get_from_mutex!(self.hashgraph, ResourceHashgraphPoisonError)?;
-        Ok(hashgraph.insert(hash, e))
+        hashgraph.insert(hash, e);
+        Ok(())
     }
 
     #[inline]

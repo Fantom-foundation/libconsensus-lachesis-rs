@@ -1,6 +1,5 @@
 use crate::event::parents::Parents;
 use crate::event::Event;
-use crate::peer::PeerId;
 use failure::Error;
 use ring::signature::{verify, ED25519};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -22,13 +21,13 @@ impl EventSignature {
     pub fn verify<P: Parents + Clone + Serialize>(
         &self,
         event: &Event<P>,
-        peer: &PeerId,
+        peer: &[u8],
     ) -> Result<(), Error> {
-        let public_key = untrusted::Input::from(peer.as_ref());
+        let public_key = untrusted::Input::from(peer);
         let hash = event.hash()?;
         let msg = untrusted::Input::from(hash.as_ref());
         let signature = untrusted::Input::from(self.0.as_ref());
-        verify(&ED25519, public_key, msg, signature).map_err(|e| Error::from(e))
+        Ok(verify(&ED25519, public_key, msg, signature)?)
     }
 }
 
@@ -71,9 +70,5 @@ impl PartialEq for EventSignature {
     #[inline]
     fn eq(&self, other: &EventSignature) -> bool {
         self.0[..] == other.0[..]
-    }
-    #[inline]
-    fn ne(&self, other: &EventSignature) -> bool {
-        self.0[..] != other.0[..]
     }
 }
