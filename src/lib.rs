@@ -6,6 +6,8 @@ extern crate log;
 extern crate proptest;
 #[macro_use]
 extern crate serde_derive;
+extern crate libconsensus;
+extern crate libtransport_http;
 
 macro_rules! get_from_mutex {
     ($resource: expr, $error: ident) => {

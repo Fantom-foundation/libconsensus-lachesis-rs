@@ -80,7 +80,7 @@ impl<P: Peer<Opera> + Clone> Lachesis<P> {
             parent_hashes.push(h);
         }
         let parents = ParentsList(parent_hashes);
-        let new_head = Event::new(vec![], Some(parents), peer_id.clone());
+        let new_head = Event::new(vec![], vec![], Some(parents), peer_id.clone());
         let new_head_hash = new_head.hash()?;
         let mut head = get_from_mutex!(self.head, ResourceHeadPoisonError)?;
         *head = Some(new_head_hash.clone());
@@ -333,6 +333,6 @@ impl<P: Peer<Opera> + Clone> Node for Lachesis<P> {
     }
 
     fn get_ordered_events(&self) -> Result<Vec<Event<ParentsList>>, Error> {
-        Ok(Vec::new())
+        Ok(vec![])
     }
 }

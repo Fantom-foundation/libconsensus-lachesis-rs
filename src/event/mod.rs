@@ -13,6 +13,14 @@ pub mod parents;
 use self::event_hash::EventHash;
 use self::event_signature::EventSignature;
 use self::parents::Parents;
+use crate::libconsensus::TransactionType;
+use crate::peer::PeerBaseStruct;
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct InternalTransaction {
+    transaction_type: TransactionType,
+    peer: PeerBaseStruct,
+}
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Event<P: Parents + Clone + Serialize> {
@@ -20,7 +28,8 @@ pub struct Event<P: Parents + Clone + Serialize> {
     can_see: HashMap<PeerId, EventHash>,
     #[serde(skip)]
     famous: Option<bool>,
-    payload: Vec<Vec<u8>>,
+    transactions: Vec<Vec<u8>>,
+    internal_transactions: Vec<InternalTransaction>,
     parents: Option<P>,
     timestamp: Option<u64>,
     creator: PeerId,
@@ -32,12 +41,18 @@ pub struct Event<P: Parents + Clone + Serialize> {
 }
 
 impl<P: Parents + Clone + Serialize> Event<P> {
-    pub fn new(payload: Vec<Vec<u8>>, parents: Option<P>, creator: PeerId) -> Event<P> {
+    pub fn new(
+        transactions: Vec<Vec<u8>>,
+        internal_transactions: Vec<InternalTransaction>,
+        parents: Option<P>,
+        creator: PeerId,
+    ) -> Event<P> {
         Event {
             can_see: HashMap::new(),
             creator,
             famous: None,
-            payload,
+            transactions,
+            internal_transactions,
             parents,
             round: None,
             round_received: None,
@@ -93,8 +108,8 @@ impl<P: Parents + Clone + Serialize> Event<P> {
     }
 
     #[inline]
-    pub fn payload(&self) -> Vec<Vec<u8>> {
-        self.payload.clone()
+    pub fn transactions(&self) -> Vec<Vec<u8>> {
+        self.transactions.clone()
     }
 
     #[inline]
@@ -202,7 +217,7 @@ impl<P: Parents + Clone + Serialize> Event<P> {
 
     pub fn hash(&self) -> Result<EventHash, Error> {
         let value = (
-            self.payload.clone(),
+            self.transactions.clone(),
             self.parents.clone(),
             self.timestamp,
             self.creator.clone(),
@@ -229,7 +244,7 @@ proptest! {
     fn root_event_shouldnt_have_self_parents(hash in ".*") {
         use crate::event::{EventHash, parents::ParentsPair};
         use ring::digest::{digest, SHA256};
-        let event: Event<ParentsPair> = Event::new(Vec::new(), None, Vec::new());
+        let event: Event<ParentsPair> = Event::new(vec![], vec![], None, vec![]);
         let hash = EventHash::new(digest(&SHA256, hash.as_bytes()).as_ref());
         assert!(!event.is_self_parent(&hash).unwrap())
     }
@@ -240,7 +255,7 @@ proptest! {
         use ring::digest::{digest, SHA256};
         let self_parent = EventHash::new(digest(&SHA256, self_parent_hash.as_bytes()).as_ref());
         let other_parent = EventHash::new(digest(&SHA256, b"fish").as_ref());
-        let event = Event::new(Vec::new(), Some(ParentsPair(self_parent.clone(), other_parent)), Vec::new());
+        let event = Event::new(vec![], vec![], Some(ParentsPair(self_parent.clone(), other_parent)), vec![]);
         let hash = EventHash::new(digest(&SHA256, p_try.as_bytes()).as_ref());
         assert!(event.is_self_parent(&self_parent).unwrap());
         assert_eq!(self_parent_hash == p_try, event.is_self_parent(&hash).unwrap())
@@ -249,9 +264,9 @@ proptest! {
     #[test]
     fn it_should_have_different_hashes_on_different_transactions(tx1 in "[a-z]*", tx2 in "[a-z]*") {
         use crate::event::parents::ParentsPair;
-        let event1: Event<ParentsPair> = Event::new(vec![tx1.as_bytes().to_vec()], None, Vec::new());
-        let event2: Event<ParentsPair> = Event::new(vec![tx2.as_bytes().to_vec()], None, Vec::new());
-        let event3: Event<ParentsPair> = Event::new(vec![tx2.as_bytes().to_vec()], None, Vec::new());
+        let event1: Event<ParentsPair> = Event::new(vec![tx1.as_bytes().to_vec()], vec![], None, vec![]);
+        let event2: Event<ParentsPair> = Event::new(vec![tx2.as_bytes().to_vec()], vec![], None, vec![]);
+        let event3: Event<ParentsPair> = Event::new(vec![tx2.as_bytes().to_vec()], vec![], None, vec![]);
         let hash1 = event1.hash().unwrap();
         let hash2 = event2.hash().unwrap();
         let hash3 = event3.hash().unwrap();
@@ -267,9 +282,9 @@ proptest! {
         let self_parent1 = EventHash::new(digest(&SHA256, tx1.as_bytes()).as_ref());
         let self_parent2 = EventHash::new(digest(&SHA256, tx2.as_bytes()).as_ref());
         let self_parent3 = EventHash::new(digest(&SHA256, tx2.as_bytes()).as_ref());
-        let event1 = Event::new(vec![], Some(ParentsPair(self_parent1, other_parent.clone())), Vec::new());
-        let event2 = Event::new(vec![], Some(ParentsPair(self_parent2, other_parent.clone())), Vec::new());
-        let event3 = Event::new(vec![], Some(ParentsPair(self_parent3, other_parent.clone())), Vec::new());
+        let event1 = Event::new(vec![], vec![], Some(ParentsPair(self_parent1, other_parent.clone())), vec![]);
+        let event2 = Event::new(vec![], vec![], Some(ParentsPair(self_parent2, other_parent.clone())), vec![]);
+        let event3 = Event::new(vec![], vec![], Some(ParentsPair(self_parent3, other_parent.clone())), vec![]);
         let hash1 = event1.hash().unwrap();
         let hash2 = event2.hash().unwrap();
         let hash3 = event3.hash().unwrap();
@@ -285,9 +300,9 @@ proptest! {
         let other_parent1 = EventHash::new(digest(&SHA256, tx1.as_bytes()).as_ref());
         let other_parent2 = EventHash::new(digest(&SHA256, tx2.as_bytes()).as_ref());
         let other_parent3 = EventHash::new(digest(&SHA256, tx2.as_bytes()).as_ref());
-        let event1 = Event::new(vec![], Some(ParentsPair(self_parent.clone(), other_parent1)), Vec::new());
-        let event2 = Event::new(vec![], Some(ParentsPair(self_parent.clone(), other_parent2)), Vec::new());
-        let event3 = Event::new(vec![], Some(ParentsPair(self_parent.clone(), other_parent3)), Vec::new());
+        let event1 = Event::new(vec![], vec![], Some(ParentsPair(self_parent.clone(), other_parent1)), vec![]);
+        let event2 = Event::new(vec![], vec![], Some(ParentsPair(self_parent.clone(), other_parent2)), vec![]);
+        let event3 = Event::new(vec![], vec![], Some(ParentsPair(self_parent.clone(), other_parent3)), vec![]);
         let hash1 = event1.hash().unwrap();
         let hash2 = event2.hash().unwrap();
         let hash3 = event3.hash().unwrap();
@@ -298,9 +313,9 @@ proptest! {
     #[test]
     fn it_should_have_different_hash_on_different_creators(c1 in ".*", c2 in ".*") {
         use crate::event::parents::ParentsPair;
-        let event1: Event<ParentsPair> = Event::new(vec![], None, c1.as_bytes().to_vec());
-        let event2: Event<ParentsPair> = Event::new(vec![], None, c2.as_bytes().to_vec());
-        let event3: Event<ParentsPair> = Event::new(vec![], None, c2.as_bytes().to_vec());
+        let event1: Event<ParentsPair> = Event::new(vec![], vec![], None, c1.as_bytes().to_vec());
+        let event2: Event<ParentsPair> = Event::new(vec![], vec![], None, c2.as_bytes().to_vec());
+        let event3: Event<ParentsPair> = Event::new(vec![], vec![], None, c2.as_bytes().to_vec());
         let hash1 = event1.hash().unwrap();
         let hash2 = event2.hash().unwrap();
         let hash3 = event3.hash().unwrap();
@@ -311,9 +326,9 @@ proptest! {
     #[test]
     fn it_should_have_different_hash_on_different_timestamps(s1 in 0u64..10000, s2 in 0u64..10000) {
         use crate::event::parents::ParentsPair;
-        let mut event1: Event<ParentsPair> = Event::new(vec![], None, Vec::new());
-        let mut event2: Event<ParentsPair> = Event::new(vec![], None, Vec::new());
-        let mut event3: Event<ParentsPair> = Event::new(vec![], None, Vec::new());
+        let mut event1: Event<ParentsPair> = Event::new(vec![], vec![], None, vec![]);
+        let mut event2: Event<ParentsPair> = Event::new(vec![], vec![], None, vec![]);
+        let mut event3: Event<ParentsPair> = Event::new(vec![], vec![], None, vec![]);
         event1.set_timestamp(s1);
         event2.set_timestamp(s2);
         event3.set_timestamp(s2);
@@ -338,7 +353,7 @@ mod tests {
         let kp =
             signature::Ed25519KeyPair::from_pkcs8(untrusted::Input::from(&pkcs8_bytes)).unwrap();
         let mut event: Event<ParentsPair> =
-            Event::new(vec![], None, kp.public_key_bytes().to_vec());
+            Event::new(vec![], vec![], None, kp.public_key_bytes().to_vec());
         let hash = event.hash().unwrap();
         let sign = kp.sign(hash.as_ref());
         let event_signature = EventSignature::new(sign.as_ref());
@@ -353,7 +368,7 @@ mod tests {
         let kp =
             signature::Ed25519KeyPair::from_pkcs8(untrusted::Input::from(&pkcs8_bytes)).unwrap();
         let mut event: Event<ParentsPair> =
-            Event::new(vec![], None, kp.public_key_bytes().to_vec());
+            Event::new(vec![], vec![], None, kp.public_key_bytes().to_vec());
         let hash = event.hash().unwrap();
         let sign = kp.sign(hash.as_ref());
         let event_signature = EventSignature::new(sign.as_ref());
@@ -369,7 +384,7 @@ mod tests {
         let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
         let kp =
             signature::Ed25519KeyPair::from_pkcs8(untrusted::Input::from(&pkcs8_bytes)).unwrap();
-        let mut event: Event<ParentsPair> = Event::new(vec![], None, vec![]);
+        let mut event: Event<ParentsPair> = Event::new(vec![], vec![], None, vec![]);
         let hash = event.hash().unwrap();
         let sign = kp.sign(hash.as_ref());
         let event_signature = EventSignature::new(sign.as_ref());

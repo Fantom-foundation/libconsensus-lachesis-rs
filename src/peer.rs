@@ -10,7 +10,7 @@ use std::sync::RwLock;
 pub type PeerId = Vec<u8>;
 
 // The very basic peer attributes used to specify a peer in the network
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct PeerBaseStruct {
     #[serde(rename = "PubKeyHex")]
     id: PeerId,
