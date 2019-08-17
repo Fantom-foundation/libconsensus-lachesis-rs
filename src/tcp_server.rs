@@ -102,6 +102,7 @@ impl Peer<Opera> for TcpPeer {
     }
 }
 
+#[derive(Clone)]
 pub struct TcpApp(Arc<TcpNode<Swirlds<TcpPeer, BTreeHashgraph>>>);
 
 impl TcpApp {
