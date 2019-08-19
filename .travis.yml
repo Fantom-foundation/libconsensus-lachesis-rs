@@ -1,6 +1,6 @@
 language: rust
 rust:
-  - latest
+  - nightly-2019-08-10
 sudo: false
 
 # only cache cargo subcommand binaries and .so libs
