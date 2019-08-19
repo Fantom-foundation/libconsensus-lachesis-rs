@@ -135,8 +135,8 @@ impl<P: Peer<Opera> + Clone> Lachesis<P> {
             .filter(Option::is_some)
             .map(Option::unwrap)
             .count();
-        if error.is_some() {
-            return Err(error.unwrap());
+        if let Some(e) = error {
+            return Err(e);
         }
         Ok(count)
     }
@@ -208,8 +208,8 @@ impl<P: Peer<Opera> + Clone> Lachesis<P> {
             })
             .filter(|t1| t1.is_some() && t == t1.unwrap())
             .count();
-        if error.is_some() {
-            return Err(error.unwrap());
+        if let Some(e) = error {
+            return Err(e);
         } else if d % H > 0 {
             if k > self.network.len() * 2 / 3 {
                 opera.set_consensus_time(hash, t)?;
@@ -234,8 +234,8 @@ impl<P: Peer<Opera> + Clone> Lachesis<P> {
                 .ok_or_else(|| HashgraphError::new(HashgraphErrorType::NoLamportTimeSet))?;
             frame.set_clotho_time(root.clone(), t);
         }
-        if error.is_some() {
-            return Err(error.unwrap());
+        if let Some(e) = error {
+            return Err(e);
         }
         Ok(())
     }
