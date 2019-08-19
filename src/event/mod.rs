@@ -93,8 +93,8 @@ impl<P: Parents + Clone + Serialize> Event<P> {
                 }
             })
             .unwrap_or(false);
-        if error.is_some() {
-            return Err(error.unwrap());
+        if let Some(e) = error {
+            return Err(e);
         }
         Ok(r)
     }
@@ -188,8 +188,8 @@ impl<P: Parents + Clone + Serialize> Event<P> {
             .unwrap()
         {
             Some(p) => Ok(p),
-            None => Err(if error.is_some() {
-                Error::from(error.unwrap())
+            None => Err(if let Some(e) = error {
+                Error::from(e)
             } else {
                 none_error
             }),

@@ -895,8 +895,8 @@ impl<H: Hashgraph + Clone + fmt::Debug, P: Peer<H>> Swirlds<P, H> {
                 }
             }
         });
-        if error.is_some() {
-            return Err(error.unwrap());
+        if let Some(e) = error {
+            return Err(e);
         }
         let mut res = Vec::with_capacity(diff.len());
         for eh in diff.clone().into_iter() {

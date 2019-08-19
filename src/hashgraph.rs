@@ -90,8 +90,8 @@ fn _get_ancestors<'a>(
     .take_while(Option::is_some)
     .map(Option::unwrap) // This is safe because of the `take_while`
     .collect();
-    if error.is_some() {
-        return Err(error.unwrap());
+    if let Some(e) = error {
+        return Err(e);
     }
     Ok(v_eh)
 }
@@ -217,7 +217,7 @@ impl Hashgraph for BTreeHashgraph {
 
     fn find_self_child(&self, eh: &EventHash) -> Result<Option<EventHash>, Error> {
         let error: Option<Error> = None;
-        let r = self
+        let self_child = self
             .0
             .values()
             .find(|e| {
@@ -234,10 +234,10 @@ impl Hashgraph for BTreeHashgraph {
                     None
                 }
             });
-        if error.is_some() {
-            Err(error.unwrap())
-        } else if r.is_some() {
-            Ok(r.unwrap())
+        if let Some(e) = error {
+            Err(e)
+        } else if let Some(sc) = self_child {
+            Ok(sc)
         } else {
             Err(format_err!("find_self_child() returned None"))
         }
